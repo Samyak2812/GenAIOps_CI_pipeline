@@ -1,0 +1,12 @@
+dvc[s3]
+sentence-transformers
+faiss-cpu
+numpy
+pandas
+fastapi
+uvicorn
+pytest
+requests
+mlflow
+transformers
+datasets

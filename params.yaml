@@ -1,0 +1,22 @@
+genai:
+  backbone: "local"
+  embeddings_model: "all-MiniLM-L6-v2"
+  finetune:
+    do_finetune: false
+    epochs: 3
+    batch_size: 8
+    lr: 5e-5
+  retrieval:
+    top_k: 5
+  generation:
+    max_new_tokens: 256
+    temperature: 0.0
+  thresholds:
+    max_hallucination_rate: 0.15
+    min_factuality: 0.7
+    max_latency_ms: 2000
+
+ct:
+  schedule_cron: "0 3 * * *"
+  run_finetune_secret: "RUN_FINETUNE"
+  gpu_runner_labels: ["self-hosted","gpu"]
