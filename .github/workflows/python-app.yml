@@ -1,0 +1,87 @@
+name: GenAI - CI (lint, unit, optional full pipeline)
+
+on:
+  push:
+    branches: [ "main" ]
+  pull_request:
+    branches: [ "main" ]
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    env:
+      PYTHONUNBUFFERED: 1
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          lfs: true
+
+      - name: Set up Python 3.10
+        uses: actions/setup-python@v4
+        with:
+          python-version: "3.10"
+
+      - name: Cache pip
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/pip
+          key: ${{ runner.os }}-pip-${{ hashFiles('**/requirements.txt') }}
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          # If you have a requirements.txt, install it
+          if [ -f requirements.txt ]; then pip install -r requirements.txt; fi
+          # install test tooling and linting
+          pip install pytest flake8
+          # install package in editable mode so `import src` works in tests
+          pip install -e .
+
+      - name: Lint with flake8 (non-blocking)
+        run: |
+          # stop the build if there are Python syntax errors or undefined names
+          flake8 . --count --select=E9,F63,F7,F82 --show-source --statistics
+          # exit-zero treats all other errors as warnings
+          flake8 . --count --exit-zero --max-complexity=10 --max-line-length=127 --statistics
+
+      - name: Run fast unit tests
+        run: |
+          # run only fast, safe unit tests by default
+          pytest -q tests/test_unit_embeddings.py
+
+      # Optional: DVC pull if you have a DVC remote configured in secrets
+      - name: DVC pull (optional)
+        if: ${{ secrets.DVC_REMOTE_URL != '' }}
+        run: |
+          pip install dvc
+          dvc remote add -f origin ${{ secrets.DVC_REMOTE_URL }} || true
+          dvc pull || echo "dvc pull failed or nothing to pull"
+
+      # Optional full pipeline (heavy). Enabled only when RUN_FULL_PIPELINE secret is "true".
+      # This prevents accidental heavy HF model downloads on GitHub-hosted runners.
+      - name: Run full local pipeline (gen_prep, embeddings, index) and integration tests
+        if: ${{ secrets.RUN_FULL_PIPELINE == 'true' }}
+        run: |
+          set -e
+          # Recreate KB and prompt
+          python src/gen_prep.py --seed_dir data/seed --out_kb data/gen/knowledge_base.jsonl --out_prompt data/gen/prompts_template.txt
+          # Create embeddings (will download sentence-transformers model if needed)
+          python src/create_embeddings.py --kb data/gen/knowledge_base.jsonl --out_emb data/gen/embeddings.npy --out_ids data/gen/ids.npy --backend hf --model sentence-transformers/all-MiniLM-L6-v2
+          # Build faiss index
+          python src/build_faiss_index.py --emb data/gen/embeddings.npy --ids data/gen/ids.npy --out data/gen/faiss_index.faiss
+          # Run integration tests that require the index & models
+          pytest -q tests/test_integration_api.py
+
+      - name: Upload test artifacts
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: genai-ci-artifacts
+          path: |
+            logs/**
+            metrics/**
