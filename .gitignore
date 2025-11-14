@@ -1,9 +1,9 @@
 __pycache__/
 *.pyc
-data/gen/embeddings.npy
-data/gen/ids.npy
-data/gen/faiss_index.faiss
-models/gen_model/
-.logs/
-.vscode/
 .env
+.vscode/
+data/gen/*.npy
+data/gen/*.faiss
+models/
+logs/
+metrics/
