@@ -1,22 +1,17 @@
 genai:
-  backbone: "local"
-  embeddings_model: "all-MiniLM-L6-v2"
-  finetune:
-    do_finetune: false
-    epochs: 3
-    batch_size: 8
-    lr: 5e-5
+  backend: "local"            # options: local | openai
+  hf_model: "gpt2"            # small default; replace with your model e.g. "gpt2-medium" or an instruct model
+  openai_model: "gpt-4o-mini" # if using OpenAI
+  embeddings:
+    backend: "hf"             # hf or openai
+    hf_model: "sentence-transformers/all-MiniLM-L6-v2"
+    openai_model: "text-embedding-3-small"
   retrieval:
-    top_k: 5
+    top_k: 4
   generation:
-    max_new_tokens: 256
+    max_new_tokens: 128
     temperature: 0.0
-  thresholds:
-    max_hallucination_rate: 0.15
-    min_factuality: 0.7
-    max_latency_ms: 2000
-
 ct:
-  schedule_cron: "0 3 * * *"
-  run_finetune_secret: "RUN_FINETUNE"
-  gpu_runner_labels: ["self-hosted","gpu"]
+  finetune_enabled: false
+  finetune_epochs: 1
+  finetune_batch: 8
