@@ -26,29 +26,11 @@ stages:
     outs:
       - data/gen/faiss_index.faiss
 
-  gen_finetune:
-    cmd: python src/finetune.py
-    deps:
-      - src/finetune.py
-      - data/gen/finetune_dataset.jsonl
-      - params.yaml
-    outs:
-      - models/gen_model/
-
   gen_eval:
     cmd: python src/gen_evaluate.py --output metrics/gen_eval_report.json
     deps:
       - src/gen_evaluate.py
-      - models/gen_model/
       - data/validation/
       - params.yaml
     outs:
       - metrics/gen_eval_report.json
-
-  gen_monitor:
-    cmd: python src/gen_monitor.py
-    deps:
-      - src/gen_monitor.py
-      - logs/gen_calls.log
-    outs:
-      - metrics/gen_monitoring_report.csv
